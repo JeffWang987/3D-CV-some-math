@@ -167,11 +167,17 @@
 \subsubsection{相机内参数}
 上面\ref{eq:sy1},\ref{eq:sy2}描述的是最一般射影空间(焦距为1),在实际的相机模型描述中，我们还保留焦距为$f$的射影空间表示方法：
 \begin{equation}
+    \label{eq:nc_basic}
     \left[\begin{array}{l}
         x \\
         y \\
         f
-        \end{array}\right]\overset{\lambda}{=}\left[\begin{array}{l}
+        \end{array}\right]=\lambda\left[\begin{array}{l}
+            X_{cam} \\
+            Y_{cam} \\
+            Z_{cam}
+            \end{array}\right]
+        \overset{\lambda}{=}\left[\begin{array}{l}
         X_{cam} \\
         Y_{cam} \\
         Z_{cam}
@@ -203,7 +209,7 @@
     X_{cam} \\
     Y_{cam} \\
     Z_{cam}
-    \end{array}\right]=\mathbf{K}\left[\begin{array}{l}
+    \end{array}\right]\overset{\lambda}{=}\mathbf{K}\left[\begin{array}{l}
         X_{cam} \\
         Y_{cam} \\
         Z_{cam}
@@ -252,7 +258,7 @@ $\left[\begin{array}{lll}
         Y_{cam} \\
         Z_{cam} \\
         1
-        \end{array}\right]=\left[\begin{array}{ll}
+        \end{array}\right]\overset{\lambda}{=}\left[\begin{array}{ll}
         \mathbf{R} & \mathbf{t} \\
         \mathbf{0}^{T} & 1
         \end{array}\right]\left[\begin{array}{c}
@@ -272,7 +278,7 @@ $\left[\begin{array}{lll}
         x \\
         y \\
         1
-        \end{array}\right]=\left[\begin{array}{lll}
+        \end{array}\right]\overset{\lambda}{=}\left[\begin{array}{lll}
         f & 0 & 0 \\
         0 & f & 0 \\
         0 & 0 & 1
@@ -293,13 +299,14 @@ $\left[\begin{array}{lll}
 
 简化如下：
 \begin{equation}
+    \label{eq:xjmx}
     \left[
         \begin{array}{l}
             x \\
             y \\
             1
         \end{array}
-    \right]=
+    \right]\overset{\lambda}{=}
     \mathbf{K}\left[\mathbf{R|\mathbf{t}}\right]\left[
         \begin{array}{l}
             X_{world} \\
@@ -315,6 +322,56 @@ $\left[\begin{array}{lll}
     &f&\\
     &&1
 \end{array}\right]$
+
+上述公式都是$\overset{\lambda}{=}$（差一个尺度因子时等价），但是这是简化在焦距$f=1$的2维平面上的，实际上在使用的时候，
+例如我们想把3维点投射到2维焦距为$f$的图像平面上，我们就不能在$\overset{\lambda}{=}$上讨论了，要严格相等才行。
+
+回忆公式\ref{eq:nc_basic}：
+\begin{equation}
+    \nonumber
+    \left[\begin{array}{l}
+        x \\
+        y \\
+        f
+        \end{array}\right]=\lambda\left[\begin{array}{l}
+            X_{cam} \\
+            Y_{cam} \\
+            Z_{cam}
+            \end{array}\right]
+        \overset{\lambda}{=}\left[\begin{array}{l}
+        X_{cam} \\
+        Y_{cam} \\
+        Z_{cam}
+        \end{array}\right]
+\end{equation}
+
+即$\lambda=\frac{f}{Z_{cam}}$,将$\lambda$带入公式\ref{eq:xjmx},又考虑到公式\ref{eq:nc}的第二个$\overset{\lambda}{=}$,
+已经乘以过一次$f$，所以最终$\lambda=\frac{1}{Z_{cam}}$，最终得到严格相等的相机模型：
+\begin{equation}
+    \left[
+        \begin{array}{l}
+            x \\
+            y \\
+            1
+        \end{array}
+    \right]\overset{\lambda}{=}
+    \mathbf{K}\left[\mathbf{R|\mathbf{t}}\right]\left[
+        \begin{array}{l}
+            X_{world} \\
+            Y_{world} \\
+            Z_{world} \\
+            1
+        \end{array}
+    \right]=\frac{1}{Z_{cam}}
+    \mathbf{K}\left[\mathbf{R|\mathbf{t}}\right]\left[
+        \begin{array}{l}
+            X_{world} \\
+            Y_{world} \\
+            Z_{world} \\
+            1
+        \end{array}
+    \right]
+\end{equation}
 
 \newpage
 \subsection{多视几何}
