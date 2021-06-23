@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.999992 (TeX Live 2020) (preloaded format=xelatex 2020.9.18)  21 JUN 2021 13:51
+This is XeTeX, Version 3.14159265-2.6-0.999992 (TeX Live 2020) (preloaded format=xelatex 2020.9.18)  23 JUN 2021 19:45
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -584,16 +584,28 @@ File: ./img/ds.png Graphic file (type bmp)
 <./img/ds.png>
 File: ./img/epipolar.png Graphic file (type bmp)
 <./img/epipolar.png>
- [7] [8] [9] [10] [11] [12]
+ [7] [8] [9]
+File: ./img/xjbd1.png Graphic file (type bmp)
+<./img/xjbd1.png>
+ [10]
+File: ./img/xjbd2.png Graphic file (type bmp)
+<./img/xjbd2.png>
+ [11]
+Missing character: There is no ≥ in font [lmroman12-regular]:mapping=tex-text;!
+ [12]
 File: ./img/bianhuan.png Graphic file (type bmp)
 <./img/bianhuan.png>
- [13] [14] (./Chinese.aux) ) 
+ [13] [14] (./Chinese.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ ) 
 Here is how much of TeX's memory you used:
- 11615 strings out of 479418
- 274647 string characters out of 5884585
- 564119 words of memory out of 5000000
- 28942 multiletter control sequences out of 15000+600000
- 540573 words of font info for 87 fonts, out of 8000000 for 9000
+ 11655 strings out of 479418
+ 275713 string characters out of 5884585
+ 564147 words of memory out of 5000000
+ 28973 multiletter control sequences out of 15000+600000
+ 543337 words of font info for 96 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  58i,8n,81p,408b,306s stack positions out of 5000i,500n,10000p,200000b,80000s
 

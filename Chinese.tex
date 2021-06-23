@@ -434,7 +434,7 @@ $O_2P=\mathbf{X_1-t=RX_2}$.
 
 \subsubsection{两视图几何--8点法}
 根据基础矩阵$F$和给定两视图中的对应点$x,x'$,我们有$\mathbf{x}^{\prime \mathrm{T}} \mathbf{F} \mathbf{x}=0$，按我们的第一印象，
-矩阵矩阵含有两个内参矩阵(10个未知数)，一个旋转矩阵（1个未知数），一个平移矩阵（3个未知数），一共有14个未知数，但是要知道这些未知数不是独立的，
+矩阵矩阵含有一个(同一个相机拍摄的)内参矩阵(5DoF)，一个旋转矩阵（3DoF），一个平移矩阵（3DoF），一共有11个未知数，但是要知道这些未知数不是独立的，
 我们展开$\mathbf{x}^{\prime \mathrm{T}} \mathbf{F} \mathbf{x}=0$可以得到：
 \begin{equation}
     \left[x_{1} x_{2}, x_{1} y_{2}, x_{1}, y_{1} x_{2}, y_{1} y_{2}, y_{1}, x_{2}, y_{2}, 1\right]\left[\begin{array}{c}
@@ -449,7 +449,7 @@ $O_2P=\mathbf{X_1-t=RX_2}$.
         f_{33}
         \end{array}\right]=0
 \end{equation}
-所以实际的位置参数是9，但是最后一个维度的变量是1，所以实际未知参数是8个，即8个方程求解：
+所以实际的未知参数是9，但是最后一个维度的变量是1，所以实际未知参数是8个，即8个方程求解：
 
 \begin{equation}
     \left[\begin{array}{ccccccccc}
@@ -476,10 +476,165 @@ $O_2P=\mathbf{X_1-t=RX_2}$.
 
 \newpage
 \section{相机标定与稀疏重建}
-\newpage
-\section{立体视觉与三维建模}
-\newpage
-\section{三维表达与语义重建}
+首先说一下多视几何引发出来的几个问题,假设我得到了多视几何上$n$个点：
+\begin{equation}
+    \nonumber
+    \begin{array}{l}
+        \mathbf{x}_{1}=\mathbf{K}_{1}\left[\mathbf{R}_{1} \mid \mathbf{t}_{1}\right] \mathbf{X} \\
+        \vdots \\
+        \mathbf{x}_{n}=\mathbf{K}_{n}\left[\mathbf{R}_{n} \mid \mathbf{t}_{n}\right] \mathbf{X}
+        \end{array}
+\end{equation}
+\begin{itemize}
+    \item 三角化：已知$\mathbf{x,K,R,t}$，求$\mathbf{X}$
+    \item 姿态估计：已知$\mathbf{x,X,K}$，求$\mathbf{R,t}$
+    \item 相机标定：已知$\mathbf{x,X}$，求$\mathbf{K,R,t}$
+    \item 稀疏重建：已知$\mathbf{x}$，求$\mathbf{K,R,t,X}$
+\end{itemize}
+
+他们的求解有共同之处，其实就是列出线性方程，求解位置参数（由上到下需要的方程数要变多），但是由于误差的存在肯定无解，只能用伪逆求解
+线性方程，然后得到初始解后在逐步迭代优化这个解。
+
+下面看看相机标定和稀疏重建这两个方面。
+
+\subsection{相机标定}
+下面就是最一般的情况$p_{ij}\in(3,4)$是未知的。也是我们要求解的。
+\begin{equation}
+    \nonumber
+    \left[\begin{array}{l}
+        x_{i} \\
+        y_{i} \\
+        1
+        \end{array}\right]=\left[\begin{array}{llll}
+        p_{11} & p_{12} & p_{13} & p_{14} \\
+        p_{21} & p_{22} & p_{23} & p_{24} \\
+        p_{31} & p_{32} & p_{33} & p_{34}
+        \end{array}\right]\left[\begin{array}{l}
+        X_{i} \\
+        Y_{i} \\
+        Z_{i} \\
+        1
+        \end{array}\right]
+\end{equation}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.5]{./img/xjbd1.png}
+    \caption{最一般的相机标定方式}
+    \label{fig:xjbd1}
+\end{figure}
+
+我们将其展开，可以得到:
+\begin{equation}
+    \nonumber
+    \left[\begin{array}{cccccccccccc}
+        X_{i} & Y_{i} & Z_{i} & 1 & 0 & 0 & 0 & 0 & -x_{i} X_{i} & -x_{i} Y_{i} & -x_{i} Z_{i} & -x_{i} \\
+        0 & 0 & 0 & 0 & X_{i} & Y_{i} & Z_{i} & 1 & -y_{i} X & -y_{i} Y & -y_{i} Z_{i} & -y_{i}
+        \end{array}\right]\left[\begin{array}{c}
+        p_{11} \\
+        p_{12} \\
+        p_{13} \\
+        p_{14} \\
+        p_{21} \\
+        p_{22} \\
+        p_{23} \\
+        p_{24} \\
+        p_{31} \\
+        p_{32} \\
+        p_{33} \\
+        p_{34}
+        \end{array}\right]=\left[\begin{array}{l}
+        0 \\
+        0
+        \end{array}\right]
+\end{equation}
+即一共12个未知参数（11Dof「有时间在附录解释下」），但是一副对应点可以得到两个线性方程，所以最少只需要6个点得12个线性方程即可求解。但是这种方法是冗余的，我们可以参考下一种标定方法：
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.5]{./img/xjbd2.png}
+    \caption{张友正标定法}
+    \label{fig:xjbd2}
+\end{figure}
+
+通过限制三维世界坐标的$Z=0$，我们可以简化方程为：
+
+\begin{equation}
+    \nonumber
+    \left[\begin{array}{l}
+        x \\
+        y \\
+        1
+        \end{array}\right]=\mathbf{K}[\mathbf{R} \mid \mathbf{t}]\left[\begin{array}{c}
+        X \\
+        Y \\
+        0 \\
+        1
+        \end{array}\right]=
+        \mathbf{K}\left[\begin{array}{llll}
+        \mathbf{r}_{1} & \mathbf{r}_{2} & \mathbf{r}_{3}| & \mathbf{t}
+        \end{array}\right]
+        \left[\begin{array}{c}
+        X \\
+        Y \\
+        0 \\
+        1
+        \end{array}\right]=
+        \mathbf{K}\left[\begin{array}{lll}
+        \mathbf{r}_{1} & \mathbf{r}_{2}| & \mathbf{t}
+        \end{array}\right]
+        \left[\begin{array}{c}
+        X \\
+        Y \\
+        1
+        \end{array}\right]
+\end{equation}
+
+其中$\mathbf{K}\left[\begin{array}{lll}
+    \mathbf{r}_{1} & \mathbf{r}_{2}| & \mathbf{t}
+    \end{array}\right]$为单应矩阵$\mathbf{H}\in(3,3)$（DOF=8）,此时我们只需要4个对应点就得到8个方程就可以求解出相机参数。
+
+到现在为止，我们求的是$\mathbf{H}$而不是相机内外参数$\mathbf{K,R,t}$,那么他们的转换关系是啥呢？
+
+先把上述公式转换为:
+\begin{equation}
+    \label{eq:xjbd1}
+    \left[\begin{array}{lll}
+        \mathrm{r}_{1} & \mathrm{r}_{2} & \mid \mathbf{t}
+        \end{array}\right]=\left[\begin{array}{lll}
+        \mathbf{K}^{-1}\mathrm{h}_{1} & \mathbf{K}^{-1}\mathrm{~h}_{2} & \mathbf{K}^{-1}\mathrm{~h}_{3}
+        \end{array}\right]
+\end{equation}
+
+
+再考虑到旋转向量的两个性质：
+$\mathbf{r}_{1}^{T} \mathbf{r}_{2}=0 \quad\left\|\mathbf{r}_{1}\right\|=\left\|\mathbf{r}_{2}\right\|=1$
+
+所以得到两个约束方程：
+\begin{equation}
+    \nonumber
+    \begin{array}{c}
+        \mathbf{h}_{1}^{T} \mathbf{K}^{-T} \mathbf{K}^{-1} \mathbf{h}_{2}=0 \\
+        \mathbf{h}_{1}^{T} \mathbf{K}^{-T} \mathbf{K}^{-1} \mathbf{h}_{1}=\mathbf{h}_{2}^{T} \mathbf{K}^{-T} \mathbf{K}^{-1} \mathbf{h}_{2}
+        \end{array}
+\end{equation}
+
+定义$\boldsymbol{\omega}=\mathbf{K}^{-T} \mathbf{K}^{-1}$,我们通过3组$h$即6个方程就可以求解出$\boldsymbol{\omega}$（因为$\mathbf{K}$的DoF=5），求出
+$\boldsymbol{\omega}$后再正交分解(QR分解：正交+上三角)求出$\mathbf{K}$，然后根据公式\ref{eq:xjbd1}直接求解$r_1,r_2,t$，然后$r_3=r_1\times r_2$
+\subsection{姿态估计}
+PnP就是这个里面的问题，这里的n就是给定的匹配点的个数。然后再给定相机内参$\mathbf{K}$，要求外参数$\mathbf{R,t}$.
+\begin{itemize}
+    \item P2P:无穷多解;
+    \item P3P:最多四个解，需要第4个点验证;
+    \item P4P:最多四个解，当四点共面时有唯一解;
+    \item P5P:最多两个解;
+    \item EPnP:≥4组不共面点时有唯一解;
+    \item PnP:线性求解(n>5).
+\end{itemize}
+
+
+\subsection{稀疏重建}
+
 
 
 % --------------------------------------------------------------
