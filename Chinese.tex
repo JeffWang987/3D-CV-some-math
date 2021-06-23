@@ -38,16 +38,16 @@
 \author{王啸峰 from UCAS \& CASIA} % replace with your name
 
 \maketitle
-整体框架如图\ref{fig:framwork}:
-\begin{figure}[ht]
-    \centering
-    \includegraphics[scale=0.6]{./img/framwork.png}
-    \caption{框架图}
-    \label{fig:framwork}
-\end{figure}
+% 整体框架如图\ref{fig:framwork}:
+% \begin{figure}[ht]
+%     \centering
+%     \includegraphics[scale=0.6]{./img/framwork.png}
+%     \caption{框架图}
+%     \label{fig:framwork}
+% \end{figure}
 
 \section{相机模型与多视几何}
-先说故事：to be continue...
+% 先说故事：to be continue...
 \subsection{欧式空间和射影空间}
 先说故事：三维欧式空间可以很好的描述我们三维世界的“坐标点”，但是一旦涉及到二维图像，三维欧式坐标就不太好描述图像上像素点的位置了(因为图像上一个像素点对应的是三维空间中的
 一条直线：光心和像素点连成的直线)，所以需要射影空间来帮我们描述二维图像上的点和我们三维空间坐标的关系。以后我们就可以利用射影空间的性质（这部分比较复杂，本文只是粗略涉及）方便地计算出
@@ -434,7 +434,7 @@ $O_2P=\mathbf{X_1-t=RX_2}$.
 
 \subsubsection{两视图几何--8点法}
 根据基础矩阵$F$和给定两视图中的对应点$x,x'$,我们有$\mathbf{x}^{\prime \mathrm{T}} \mathbf{F} \mathbf{x}=0$，按我们的第一印象，
-矩阵矩阵含有一个(同一个相机拍摄的)内参矩阵(5DoF)，一个旋转矩阵（3DoF），一个平移矩阵（3DoF），一共有11个未知数，但是要知道这些未知数不是独立的，
+矩阵含有两个内参矩阵(10DoF)，一个旋转矩阵（3DoF），一个平移矩阵（3DoF），一共有16个未知数，但是要知道这些未知数不是独立的，
 我们展开$\mathbf{x}^{\prime \mathrm{T}} \mathbf{F} \mathbf{x}=0$可以得到：
 \begin{equation}
     \left[x_{1} x_{2}, x_{1} y_{2}, x_{1}, y_{1} x_{2}, y_{1} y_{2}, y_{1}, x_{2}, y_{2}, 1\right]\left[\begin{array}{c}
@@ -633,12 +633,80 @@ PnP就是这个里面的问题，这里的n就是给定的匹配点的个数。�
 \end{itemize}
 
 
-\subsection{稀疏重建}
+\subsection{稀疏重建--BA--SFM}
+我们回头看基本矩阵$\mathbf{x_1}^T\mathbf{Fx_2}=0$,仿佛就是来解决这个问题的，按照“两视图几何-8点法”可以解出$\mathbf{F}$,
+不幸的是，$\mathbf{F}$无法唯一分解出$\mathbf{K_1,K_2,R,t}$.
 
+但是我们放松一下条件，如果假设$\mathbf{K_1,K_2}$已知（这个也比较好获得，直接相机说明书等获得）。这样我们可以把目光投降本质矩阵
+$\mathbf{X_1}^T\mathbf{EX_2}=0$.
 
+那么我们可以先通过5点法求得$\mathbf{E}$，然后通过SVD分解求解$\mathbf{R,t}$。下面我们不加证明直接给出解：
+
+假设相机1的$\mathbf{R_1=I,t_1=0}$,SVD分解得$\mathbf{E=U}diag(1,1,0)\mathbb{V}^T$。
+此时相机2有4组解：
+\begin{equation}
+    \nonumber
+    \begin{array}{l}
+        {\left[\mathbf{R}_{2} \mid \mathbf{t}_{2}\right]=\left[\mathbf{U} \mathbf{W} \mathbf{V}^{T} \mid+\mathbf{u}_{3}\right]} \\
+        {\left[\mathbf{R}_{2} \mid \mathbf{t}_{2}\right]=\left[\mathbf{U} \mathbf{W} \mathbf{V}^{T} \mid-\mathbf{u}_{3}\right]} \\
+        {\left[\mathbf{R}_{2} \mid \mathbf{t}_{2}\right]=\left[\mathbf{U} \mathbf{W}^{T} \mathbf{V}^{T} \mid+\mathbf{u}_{3}\right]} \\
+        {\left[\mathbf{R}_{2} \mid \mathbf{t}_{2}\right]=\left[\mathbf{U} \mathbf{W}^{T} \mathbf{V}^{T} \mid-\mathbf{u}_{3}\right]}
+        \end{array}
+\end{equation}
+
+其中$\mathbf{W}=\left[\begin{array}{ccc}
+    0 & -1 & 0 \\
+    1 & 0 & 0 \\
+    0 & 0 & 1
+    \end{array}\right]$.
+
+接下来怎么从这四个解中选一个呢？我们的原则是通过「三角化」求解$\mathbb{X}$,然后保留$\mathbb{X}$在相机前方最多的那个解。
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.6]{./img/xscj1.png}
+    \caption{稀疏重建解4选1}
+    \label{fig:xscj1}
+\end{figure}
+
+这个可以当作初始解（代数误差最小），下面我们要迭代获得一个更精确的解。即求解重投影误差最小化（几何误差最小）：
+
+描述问题如下：在给定$\mathbf{K}$，通过对$\mathbf{E}$进行SVD分解后求得$\mathbf{R,t}$,并三角化得到$\mathbf{X}$,
+迭代求解重投影误差最小化问题：
+\begin{equation}
+    \nonumber
+    \min \sum_{i}\left\|\mathbf{P X}_{i}-\mathbf{x}_{i}\right\|^{2}
+\end{equation}
+最终得到几何误差最小化的$\mathbf{K,R,t,X}$.
+
+如本节开头所说，其实三角化，相机标定，稀疏重建都可以先线性求一个初始解，然后在迭代求解重投影误差最小化，他们的异同如下图：
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.4]{./img/xscj2.png}
+    \caption{重投影误差最小化}
+    \label{fig:xscj2}
+\end{figure}
+
+下面长话短说，上面的$\mathbf{X}_i$在不同问题中含义不同，但是是$\mathbf{K,R,t,X}$的非线性组合，所以这可以看作非线性的最小二乘优化问题。
+求解非线性最小二乘一般会用LM法(一种启发式的阻尼高斯牛顿法)。
+
+所谓的BA：Bundle Adjustment 捆绑调整，说的就是用LM求解重投影误差最小化。
+
+上面这一套稀疏重建从最小化代数误差然后再到BA优化得到最小化几何误差就是SFM(structure from motion)。一般比较好做的是二视图的SFM，增量式的SFM流程如下：
+\begin{itemize}
+    \item 选择初始图像对;
+    \item 通过两视图SfM计算初始模型;
+    \item 如果图像连接关系图还有未选择的图像\begin{itemize}
+        \item 选择一幅能看到目前模型中最多3D点的图像;
+        \item 根据3D‐2D点对应估计相机位姿;
+        \item 三角化新的特征点Tracks
+        \item bundle adjustment
+    \end{itemize}
+\end{itemize}
 
 % --------------------------------------------------------------
-%     You don't have to mess with anything below this line.
+%     You don't have to mess with an\Omega ything below this line.
 % --------------------------------------------------------------
 
 \newpage
