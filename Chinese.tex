@@ -428,9 +428,9 @@ $O_2P=\mathbf{X_1-t=RX_2}$.
 下面的基本矩阵是一个道理，不过描述的是两张图片上像素位置($p_1$和$p_2$)的转换关系.根据公式\ref{eq:nc}:$\mathbf{x}\overset{\lambda}{=}\mathbf{KX}$,
 有：
 \begin{equation}
-    \mathbf{x_1}^T(\mathbf{K_1}^{-1}[\mathbf{t}]_\times \mathbf{RK_2}^{-1})\mathbf{X_2}=0
+    \mathbf{x_1}^T(\mathbf{K_1}^{-T}[\mathbf{t}]_\times \mathbf{RK_2}^{-1})\mathbf{X_2}=0
 \end{equation}
-其中$\mathbf{K_1}^{-1}[\mathbf{t}]_\times \mathbf{RK_2}^{-1}$就是基础矩阵$\mathbf{F}$.
+其中$\mathbf{K_1}^{-T}[\mathbf{t}]_\times \mathbf{RK_2}^{-1}$就是基础矩阵$\mathbf{F}$.
 
 \subsubsection{两视图几何--8点法}
 根据基础矩阵$F$和给定两视图中的对应点$x,x'$,我们有$\mathbf{x}^{\prime \mathrm{T}} \mathbf{F} \mathbf{x}=0$，按我们的第一印象，
